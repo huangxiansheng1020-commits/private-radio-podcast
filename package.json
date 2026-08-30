@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "sync:feeds": "node scripts/sync-podcasts.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
