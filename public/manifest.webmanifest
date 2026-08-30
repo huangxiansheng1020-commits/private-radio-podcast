@@ -1,0 +1,14 @@
+{
+  "name": "声匣 · 私人广播与播客",
+  "short_name": "声匣",
+  "description": "一个干净、私人的广播与播客播放器",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f4",
+  "theme_color": "#f7f7f4",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
