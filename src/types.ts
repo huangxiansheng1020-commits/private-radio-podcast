@@ -11,6 +11,7 @@ export type AudioSource = {
   source?: string
   description?: string
   publishedAt?: string
+  publishedTimestamp?: number
   frequency?: string
   stationCategory?: string
   feedId?: string
