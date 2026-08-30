@@ -4,7 +4,7 @@ export const podcastFeeds: PodcastFeed[] = [
   {
     id: 'nida-podcast',
     title: '霓达播客',
-    feedUrl: 'https://feed.xyzfm.space/xlgejk3wbj8q',
+    feedUrl: `${import.meta.env.BASE_URL}feeds/nida-podcast.xml`,
     description: '把值得慢慢听的故事，留给一个安静的晚上。',
     status: 'loading',
   },
