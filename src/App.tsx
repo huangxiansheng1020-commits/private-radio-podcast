@@ -67,21 +67,24 @@ function HomePage({ episodes, onOpenPlayer }: { episodes: AudioSource[]; onOpenP
       <div className="progress-track"><span style={{ width: `${currentSource?.type === 'podcast' && currentSource.duration ? Math.min(100, currentTime / currentSource.duration * 100) : 18}%` }} /></div>
     </section>
 
-    <section className="content-section"><SectionTitle eyebrow="YOUR STATIONS" title="常听广播" action="全部" /><div className="station-list">{stations.map((station, index) => <div className="station-row" key={station.id}><div className={`station-avatar station-${index}`}><span>{index === 0 ? '交' : index === 1 ? '声' : 'R4'}</span></div><div className="station-copy"><strong>{station.title}</strong><span>{station.frequency} · {station.stationCategory}</span></div><PlayButton source={station} /></div>)}</div></section>
+    <section className="content-section"><SectionTitle eyebrow="YOUR STATIONS" title="常听广播" action="全部" /><div className="station-list">{stations.map((station, index) => <div className="station-row" key={station.id}><div className={`station-avatar station-${index % 3}`}><span>{index === 0 ? '交' : index === 1 ? '92' : index === 2 ? '声' : 'R4'}</span></div><div className="station-copy"><strong>{station.title}</strong><span>{station.frequency} · {station.stationCategory}</span></div><PlayButton source={station} /></div>)}</div></section>
 
     <section className="content-section updates-section"><SectionTitle eyebrow="FROM YOUR PODCASTS" title="最近更新" action="查看全部" /><div className="episode-stack">{episodes.slice(0, 3).map((episode) => <article className="episode-row" key={episode.id} onClick={() => onOpenPlayer(episode)}><Cover source={episode} size="small" /><div className="episode-copy"><span className="source-label">{episode.source}</span><strong>{episode.title}</strong><span className="episode-date">{episode.publishedAt || '最近更新'}{episode.duration ? ` · ${formatTime(episode.duration)}` : ''}</span></div><PlayButton source={episode} /></article>)}</div></section>
   </main>
 }
 
-function PodcastPage({ feed, episodes, onOpenPlayer, onRefresh }: { feed: PodcastFeed; episodes: AudioSource[]; onOpenPlayer: (source?: AudioSource) => void; onRefresh: () => Promise<void> }) {
+function PodcastPage({ feeds, episodes, onOpenPlayer, onRefresh }: { feeds: PodcastFeed[]; episodes: AudioSource[]; onOpenPlayer: (source?: AudioSource) => void; onRefresh: () => Promise<void> }) {
   const [refreshing, setRefreshing] = useState(false)
   const reload = async () => {
     setRefreshing(true)
     try { await onRefresh() } finally { setRefreshing(false) }
   }
+  const readyFeeds = feeds.filter((item) => item.status === 'ready')
+  const featuredFeed = readyFeeds[0] || feeds[0]
   return <main className="page"><header className="page-header"><div><span className="eyebrow">LIBRARY</span><h1>我的播客</h1></div><button className="icon-button" onClick={reload} aria-label="刷新"><RefreshIcon size={20} /></button></header>
-    <section className="podcast-hero"><Cover source={feed} size="large" /><div className="podcast-hero-copy"><span className="pill"><span className="live-dot" /> 已订阅</span><h2>{feed.title}</h2><p>{feed.description}</p><span className="muted">{feed.lastUpdated ? `更新于 ${feed.lastUpdated}` : '正在读取 RSS 更新'}</span></div></section>
-    <section className="content-section podcast-episodes"><SectionTitle eyebrow="EPISODES" title="全部单集" action={refreshing ? '更新中' : '刷新'} /><div className="episode-list">{episodes.map((episode, index) => <article className="long-episode" key={episode.id} onClick={() => onOpenPlayer(episode)}><span className="episode-number">{String(index + 1).padStart(2, '0')}</span><div className="episode-copy"><strong>{episode.title}</strong><span>{episode.publishedAt || '最近'}{episode.duration ? ` · ${formatTime(episode.duration)}` : ''}</span></div><PlayButton source={episode} /></article>)}</div></section>
+    <section className="podcast-hero"><Cover source={featuredFeed} size="large" /><div className="podcast-hero-copy"><span className="pill"><span className="live-dot" /> 已订阅 {readyFeeds.length}/{feeds.length}</span><h2>{featuredFeed?.title || '播客库'}</h2><p>{featuredFeed?.description || '正在读取播客更新。'}</p><span className="muted">共 {episodes.length} 集 · {refreshing ? '更新中' : '已同步'}</span></div></section>
+    <section className="content-section podcast-subscriptions"><SectionTitle eyebrow="SUBSCRIPTIONS" title="我的订阅" /><div className="podcast-feed-grid">{feeds.map((item) => <div className="podcast-feed-card" key={item.id}><Cover source={item} size="small" /><div><strong>{item.title}</strong><span>{item.status === 'ready' ? `${episodes.filter((episode) => episode.feedId === item.id).length} 集` : item.status === 'error' ? '暂时无法更新' : '读取中'}</span></div></div>)}</div></section>
+    <section className="content-section podcast-episodes"><SectionTitle eyebrow="EPISODES" title="全部单集" action={refreshing ? '更新中' : '刷新'} /><div className="episode-list">{episodes.map((episode, index) => <article className="long-episode" key={episode.id} onClick={() => onOpenPlayer(episode)}><span className="episode-number">{String(index + 1).padStart(2, '0')}</span><div className="episode-copy"><strong>{episode.title}</strong><span>{episode.source} · {episode.publishedAt || '最近'}{episode.duration ? ` · ${formatTime(episode.duration)}` : ''}</span></div><PlayButton source={episode} /></article>)}</div></section>
     <div className="feed-note"><MicIcon size={18} /><span>第一版使用配置好的 RSS 地址。之后增加播客，只需在 <code>src/data.ts</code> 添加 Feed。</span></div>
   </main>
 }
@@ -108,21 +111,28 @@ function FullPlayer({ source, onClose }: { source: AudioSource; onClose: () => v
 function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [playerOpen, setPlayerOpen] = useState(false)
-  const [feed, setFeed] = useState<PodcastFeed>(podcastFeeds[0])
+  const [feeds, setFeeds] = useState<PodcastFeed[]>(podcastFeeds)
   const [episodes, setEpisodes] = useState<AudioSource[]>(fallbackEpisodes)
   const { currentSource, toggle } = usePlayer()
 
-  const refreshFeed = async () => {
-    try {
-      const { feed: nextFeed, episodes: nextEpisodes } = await fetchPodcastFeed(feed)
-      setFeed(nextFeed)
-      if (nextEpisodes.length) setEpisodes(nextEpisodes)
-    } catch {
-      setFeed((previous) => ({ ...previous, status: 'error' }))
-    }
+  const refreshFeeds = async () => {
+    const results = await Promise.all(podcastFeeds.map(async (configuredFeed) => {
+      try {
+        return await fetchPodcastFeed(configuredFeed)
+      } catch {
+        return { feed: { ...configuredFeed, status: 'error' as const }, episodes: [] }
+      }
+    }))
+    setFeeds(results.map((result) => result.feed))
+    const nextEpisodes = results.flatMap((result) => result.episodes).sort((left, right) => {
+      const leftDate = left.publishedAt ? Date.parse(left.publishedAt) : 0
+      const rightDate = right.publishedAt ? Date.parse(right.publishedAt) : 0
+      return rightDate - leftDate
+    })
+    if (nextEpisodes.length) setEpisodes(nextEpisodes)
   }
 
-  useEffect(() => { void refreshFeed() }, [])
+  useEffect(() => { void refreshFeeds() }, [])
 
   const openPlayer = (source?: AudioSource) => {
     if (source) toggle(source)
@@ -131,7 +141,7 @@ function App() {
 
   return <div className="app-shell">
     {tab === 'home' && <HomePage episodes={episodes} onOpenPlayer={openPlayer} />}
-    {tab === 'podcast' && <PodcastPage feed={feed} episodes={episodes} onOpenPlayer={openPlayer} onRefresh={refreshFeed} />}
+    {tab === 'podcast' && <PodcastPage feeds={feeds} episodes={episodes} onOpenPlayer={openPlayer} onRefresh={refreshFeeds} />}
     {tab === 'me' && <MePage />}
     <MiniPlayer onOpen={() => setPlayerOpen(true)} />
     <BottomNav tab={tab} setTab={setTab} />
