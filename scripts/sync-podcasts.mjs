@@ -25,6 +25,10 @@ const feeds = [
     id: 'tsp-strange-profile',
     url: 'https://www.ximalaya.com/album/19206387.xml',
   },
+  {
+    id: 'luo-crossroads',
+    url: 'https://feed.xyzfm.space/wmnkvmrpwuww',
+  },
 ]
 
 const outputDirectory = new URL('../public/feeds/', import.meta.url)
