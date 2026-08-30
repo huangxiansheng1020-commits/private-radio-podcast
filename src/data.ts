@@ -19,7 +19,8 @@ export const stations: AudioSource[] = [
     subtitle: '一路同行，知晓每一程',
     frequency: 'FM 89.6',
     stationCategory: '交通',
-    audioUrl: '',
+    // 蜻蜓 FM 当前提供的 HTTPS HLS 播放列表，iPhone Safari 可直接播放。
+    audioUrl: 'https://ls.qingting.fm/live/4665.m3u8',
     source: '湖北 · 武汉',
   },
   {
@@ -29,7 +30,8 @@ export const stations: AudioSource[] = [
     subtitle: '听见湖北，连接生活',
     frequency: 'FM 104.6',
     stationCategory: '综合',
-    audioUrl: '',
+    // CNR 当前提供的 HTTPS HLS 播放列表。
+    audioUrl: 'https://satellitepull.cnr.cn/live/wx32hubzsgb/playlist.m3u8',
     source: '湖北',
   },
   {
@@ -39,7 +41,8 @@ export const stations: AudioSource[] = [
     subtitle: 'Stories, ideas and conversations',
     frequency: 'World Service',
     stationCategory: '国际',
-    audioUrl: '',
+    // BBC 面向国际访问的当前 HLS 入口；国内网络可用性取决于当地网络线路。
+    audioUrl: 'https://as-hls-ww-live.akamaized.net/pool_55057080/live/ww/bbc_radio_fourfm/bbc_radio_fourfm.isml/bbc_radio_fourfm-audio=128000.norewind.m3u8',
     source: 'United Kingdom',
   },
 ]
