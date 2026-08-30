@@ -1,4 +1,4 @@
-const CACHE = 'shengxia-shell-v3'
+const CACHE = 'shengxia-shell-v4'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => {
