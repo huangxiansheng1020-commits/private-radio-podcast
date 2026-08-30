@@ -125,8 +125,8 @@ function App() {
     }))
     setFeeds(results.map((result) => result.feed))
     const nextEpisodes = results.flatMap((result) => result.episodes).sort((left, right) => {
-      const leftDate = left.publishedAt ? Date.parse(left.publishedAt) : 0
-      const rightDate = right.publishedAt ? Date.parse(right.publishedAt) : 0
+      const leftDate = left.publishedTimestamp ?? 0
+      const rightDate = right.publishedTimestamp ?? 0
       return rightDate - leftDate
     })
     if (nextEpisodes.length) setEpisodes(nextEpisodes)
