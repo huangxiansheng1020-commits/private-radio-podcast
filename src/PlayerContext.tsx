@@ -19,6 +19,9 @@ type PlayerContextValue = {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null)
 const SNAPSHOT_KEY = 'shengxia-last-playback'
+const PROGRESS_KEY = 'shengxia-playback-progress'
+
+type SavedProgress = Record<string, { position: number; duration?: number; savedAt: number }>
 
 const readSnapshot = (): PlaybackSnapshot | null => {
   try {
@@ -27,9 +30,27 @@ const readSnapshot = (): PlaybackSnapshot | null => {
   } catch { return null }
 }
 
+const readProgress = (): SavedProgress => {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY)
+    return raw ? JSON.parse(raw) as SavedProgress : {}
+  } catch { return {} }
+}
+
+const resumePositionFor = (source: AudioSource, fallback = 0) => {
+  if (source.type !== 'podcast') return 0
+  const saved = readProgress()[source.id]
+  const position = saved?.position ?? fallback
+  const knownDuration = saved?.duration ?? source.duration
+  if (!Number.isFinite(position) || position < 3) return 0
+  if (knownDuration && knownDuration - position < 15) return 0
+  return position
+}
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const timerRef = useRef<number | null>(null)
+  const pendingSeekRef = useRef<number | null>(null)
   const [currentSource, setCurrentSource] = useState<AudioSource | null>(() => readSnapshot()?.source ?? null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => readSnapshot()?.position ?? 0)
@@ -44,7 +65,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audio.playbackRate = playbackRate
     audioRef.current = audio
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
-    const onLoadedMetadata = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
+    const onLoadedMetadata = () => {
+      const mediaDuration = Number.isFinite(audio.duration) ? audio.duration : 0
+      setDuration(mediaDuration)
+      const pendingPosition = pendingSeekRef.current
+      if (pendingPosition !== null) {
+        const target = mediaDuration ? Math.min(pendingPosition, Math.max(0, mediaDuration - 0.25)) : pendingPosition
+        try {
+          audio.currentTime = target
+          setCurrentTime(target)
+        } catch {
+          setCurrentTime(pendingPosition)
+        }
+        pendingSeekRef.current = null
+      }
+    }
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
     const onEnded = () => { setIsPlaying(false); setCurrentTime(0) }
@@ -68,9 +103,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!currentSource) return
-    const snapshot: PlaybackSnapshot = { source: currentSource, position: currentTime, savedAt: Date.now() }
+    const position = currentSource.type === 'podcast' ? currentTime : 0
+    const snapshot: PlaybackSnapshot = { source: currentSource, position, savedAt: Date.now() }
     localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot))
-  }, [currentSource, currentTime])
+    if (currentSource.type === 'podcast') {
+      const progress = readProgress()
+      progress[currentSource.id] = { position, duration: duration || currentSource.duration, savedAt: Date.now() }
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress))
+    }
+  }, [currentSource, currentTime, duration])
 
   useEffect(() => {
     if ('mediaSession' in navigator && currentSource) {
@@ -93,23 +134,36 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current
     if (!audio) return
     setError(null)
-    if (source && source.id !== currentSource?.id) {
-      setCurrentSource(source)
-      setCurrentTime(0)
-      setDuration(source.duration ?? 0)
-      audio.src = source.audioUrl
-      audio.currentTime = 0
-    }
-    if (!(source ?? currentSource)?.audioUrl) {
+    const targetSource = source ?? currentSource
+    if (!targetSource?.audioUrl) {
       setError('这个示例音源还没有配置播放地址。你可以在 src/data.ts 中填入 streamUrl。')
       return
     }
-    if (audio.src === '') {
-      audio.src = (source ?? currentSource)!.audioUrl
-      audio.currentTime = source ? 0 : currentTime
+
+    const sourceChanged = targetSource.id !== currentSource?.id
+    const needsLoading = audio.getAttribute('src') !== targetSource.audioUrl
+    const snapshot = readSnapshot()
+    const fallbackPosition = snapshot?.source.id === targetSource.id ? snapshot.position : currentTime
+    const resumePosition = resumePositionFor(targetSource, sourceChanged ? 0 : fallbackPosition)
+
+    if (source && source !== currentSource) setCurrentSource(source)
+    if (sourceChanged || needsLoading) {
+      setDuration(targetSource.duration ?? 0)
+      setCurrentTime(resumePosition)
+    }
+    if (needsLoading) {
+      pendingSeekRef.current = resumePosition
+      audio.src = targetSource.audioUrl
+      audio.load()
+      if (audio.readyState >= 1 && resumePosition > 0) {
+        try {
+          audio.currentTime = resumePosition
+          pendingSeekRef.current = null
+        } catch { /* Safari 会在 loadedmetadata 后再次恢复 */ }
+      }
     }
     void audio.play().catch(() => setError('播放被浏览器拦截，请再次点击播放。'))
-  }, [currentSource])
+  }, [currentSource, currentTime])
 
   const pause = useCallback(() => { audioRef.current?.pause() }, [])
 
