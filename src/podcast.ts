@@ -32,6 +32,8 @@ export async function fetchPodcastFeed(feed: PodcastFeed): Promise<{ feed: Podca
     const duration = durationParts.length === 3
       ? durationParts[0] * 3600 + durationParts[1] * 60 + durationParts[2]
       : durationParts.length === 2 ? durationParts[0] * 60 + durationParts[1] : Number(rawDuration) || undefined
+    const rawPublishedAt = text(item, 'pubDate')
+    const parsedPublishedAt = Date.parse(rawPublishedAt)
 
     return {
       id: `${feed.id}-${text(item, 'guid') || index}`,
@@ -43,7 +45,8 @@ export async function fetchPodcastFeed(feed: PodcastFeed): Promise<{ feed: Podca
       cover: itemCover,
       audioUrl: enclosure?.getAttribute('url') || '',
       duration,
-      publishedAt: formatPublishedAt(text(item, 'pubDate')),
+      publishedAt: formatPublishedAt(rawPublishedAt),
+      publishedTimestamp: Number.isNaN(parsedPublishedAt) ? undefined : parsedPublishedAt,
       description: text(item, 'description'),
     }
   }).filter((episode) => episode.audioUrl)
