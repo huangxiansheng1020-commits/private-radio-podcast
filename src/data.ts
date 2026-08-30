@@ -9,6 +9,13 @@ export const podcastFeeds: PodcastFeed[] = [
     status: 'loading',
   },
   {
+    id: 'luo-crossroads',
+    title: '罗永浩的十字路口',
+    feedUrl: `${import.meta.env.BASE_URL}feeds/luo-crossroads.xml`,
+    description: '罗永浩与科技、商业和人文领域人物展开的三到五小时深度对谈。',
+    status: 'loading',
+  },
+  {
     id: 'whats-next',
     title: "What's Next｜科技早知道",
     feedUrl: `${import.meta.env.BASE_URL}feeds/whats-next.xml`,
@@ -41,13 +48,6 @@ export const podcastFeeds: PodcastFeed[] = [
     title: 'TSP怪奇档案',
     feedUrl: `${import.meta.env.BASE_URL}feeds/tsp-strange-profile.xml`,
     description: '科幻、野史、神话、都市传说与奇怪事件。',
-    status: 'loading',
-  },
-  {
-    id: 'luo-crossroads',
-    title: '罗永浩的十字路口',
-    feedUrl: `${import.meta.env.BASE_URL}feeds/luo-crossroads.xml`,
-    description: '罗永浩与科技、商业和人文领域人物展开的三到五小时深度对谈。',
     status: 'loading',
   },
 ]
