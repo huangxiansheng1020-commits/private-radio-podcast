@@ -104,7 +104,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentSource) return
     const position = currentSource.type === 'podcast' ? currentTime : 0
-    const snapshot: PlaybackSnapshot = { source: currentSource, position, savedAt: Date.now() }
+    const snapshotSource = currentSource.type === 'podcast' && duration
+      ? { ...currentSource, duration }
+      : currentSource
+    const snapshot: PlaybackSnapshot = { source: snapshotSource, position, savedAt: Date.now() }
     localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot))
     if (currentSource.type === 'podcast') {
       const progress = readProgress()
