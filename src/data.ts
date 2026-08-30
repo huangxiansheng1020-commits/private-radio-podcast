@@ -43,6 +43,13 @@ export const podcastFeeds: PodcastFeed[] = [
     description: '科幻、野史、神话、都市传说与奇怪事件。',
     status: 'loading',
   },
+  {
+    id: 'luo-crossroads',
+    title: '罗永浩的十字路口',
+    feedUrl: `${import.meta.env.BASE_URL}feeds/luo-crossroads.xml`,
+    description: '罗永浩与科技、商业和人文领域人物展开的三到五小时深度对谈。',
+    status: 'loading',
+  },
 ]
 
 // 电台是配置驱动的。将来只需在这里增加条目，不需要改播放器。
