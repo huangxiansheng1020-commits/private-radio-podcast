@@ -10,7 +10,10 @@ const formatPublishedAt = (raw: string) => {
 }
 
 export async function fetchPodcastFeed(feed: PodcastFeed): Promise<{ feed: PodcastFeed; episodes: AudioSource[] }> {
-  const response = await fetch(feed.feedUrl, { headers: { Accept: 'application/rss+xml, application/xml, text/xml' } })
+  const response = await fetch(feed.feedUrl, {
+    cache: 'no-store',
+    headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
+  })
   if (!response.ok) throw new Error(`RSS request failed: ${response.status}`)
 
   const xml = new DOMParser().parseFromString(await response.text(), 'application/xml')
@@ -18,8 +21,10 @@ export async function fetchPodcastFeed(feed: PodcastFeed): Promise<{ feed: Podca
 
   const channel = xml.querySelector('channel')
   const feedTitle = text(channel, 'title') || feed.title
-  const cover = channel?.querySelector('image > url')?.textContent?.trim() || text(channel, 'itunes\\:image')
-  const episodes = [...xml.querySelectorAll('item')].slice(0, 20).map((item, index): AudioSource => {
+  const cover = channel?.querySelector('image > url')?.textContent?.trim()
+    || channel?.querySelector('itunes\\:image')?.getAttribute('href')
+    || undefined
+  const episodes = [...xml.querySelectorAll('item')].map((item, index): AudioSource => {
     const enclosure = item.querySelector('enclosure')
     const itemCover = item.querySelector('itunes\\:image')?.getAttribute('href') || cover || undefined
     const rawDuration = text(item, 'itunes\\:duration')
